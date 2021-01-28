@@ -1,0 +1,120 @@
+Flow-Guided Feature Aggregation for Video Object Detection  (FGFA)
+
+数据集:
+
+ImageNet VID dataset
+
+数据输入:
+
+视频帧 以及前后 K 帧 (默认取 K = 10)
+
+视频帧之间的光流通过 FlowNet-simple 计算
+
+网络结构：
+
+Resnet 101 当前帧以及前后k帧的feature map
+
+FlowNet 前后K帧对于当前帧的光流
+
+Flow-guided warping 根据前后K帧的光流将前后K帧的feature map 投影到当前帧的feature map上
+
+Feature aggregation embedding 计算前后K帧的Feature map 对于当前帧的feature map投影的权重，并作融合
+
+rpn-layer 举荐候选框  (底层网络为R-FCN)
+
+Dense-layer 分类，回归
+
+核心点：
+
+
+A)
+
+Flow-guided warping
+
+通过第i,j帧之间的光流 (通过FlowNet计算) 来实现把第j帧的Feature map 投射到第i帧的feature map上
+
+投射函数W:
+
+通过mx.symbol.GridGenerator 来得到 (光流作为输入) 2D sampling grid 
+
+mx.symbolGridGenerator 有两种输入形式，一种是仿射变换(affine) 另外一种为光流(warp)
+这里选择光流作为输入形式
+
+接着利用mx.sym.BilinearSample 来实现位置的精确插入 (2D sampling grid 和feature map作为输入)  实现通过光流把j帧的feature map投射到第i帧的feature map上
+
+
+B)
+Feature aggregation
+得到了前后K帧的feature map对当前帧feature map投影 Ej-->i(i-k <= j < i+k)后，由一个Embedding 层分别计算他们各自的Embedding feature Fj-->i，以及当前帧本身的Embedding Fi
+Embedding 层由三层卷积层构成
+
+接着分别计算前后K帧的feature map对当前帧feature map投影的权重
+计算公式为：Wj-->i = exp((Fj-->i dot Fi) / Abs(Fj-->i) * Abs(Fi))
+
+分别得出前后K帧feature map对于当前帧feature map投影的权重后，再分别由对应的前后K帧的feature map对当前帧feature map投影乘他们各自的权重，再进行总体相加融合
+
+
+
+现阶段由于只有Colab, 以及云端环境，暂时无法完成训练
+
+Github link:
+https://github.com/msracver/Flow-Guided-Feature-Aggregation
+
+
+知识点延伸:
+
+A)
+
+稀疏光流：关键点的光流
+稠密光流：所有像素点点运动光流
+
+FlowNet simple
+将需要计算光流的两张图片拼接在一起(w * h * 6)
+
+网络有两部分组成：卷积层和 refinement net
+
+卷积层为8-9个conv2d 和 maxplooing 组成
+
+refiement net 则有5层
+
+最后4层每层都会 1）结合refinement net前一层网络解卷积的结果，
+2）以及第一部分卷积网络对应卷积层的卷积结果，3）以及refinement net前一层预测光流(并上采样)的结果
+拼接而成
+
+
+
+B)
+
+Spatial Transformer Networks (STN) 仿射变换网络
+
+输入：原图， label: 仿射变换后的图片（校正过后的图片）
+
+训练值：仿射变换矩阵
+
+由三部分组成
+
+Localisation net 
+
+Grid Generator
+
+Sampler
+
+图片的仿射变换可通过一个3*2的矩阵实现 
+
+原图任意点坐标 x1,y1  ==>  (x1,y1,1)^T 变换矩阵 (a,b,c ; d,e,f)  任意点新坐标(x2,y2)
+
+(x2,y2)^T = (a,b,c ; d,e,f) (x1,y1,1)^T 
+
+在 Localisation net中，图片经过两层Conv + maxplooling 以及两层Dense 生成一个3*2的变换矩阵
+
+在Grid Generator 中根据3*2变换矩阵产生2D sampling grid 
+
+在Sampler中完成转换 (BilinearSample)
+
+
+
+
+
+
+
+
