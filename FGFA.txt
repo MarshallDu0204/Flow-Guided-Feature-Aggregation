@@ -31,7 +31,7 @@ A)
 
 Flow-guided warping
 
-通过第i,j帧之间的光流 (通过FlowNet计算) 来实现把第j帧的Feature map 投射到第i帧的feature map上
+通过第i,j帧原图之间的光流 (通过FlowNet计算) 来实现把第j帧的Feature map 通过原图计算生成的光流场作为参考投射(wrap)到第i帧的feature map上
 
 投射函数W:
 
@@ -40,15 +40,22 @@ Flow-guided warping
 mx.symbolGridGenerator 有两种输入形式，一种是仿射变换(affine) 另外一种为光流(warp)
 这里选择光流作为输入形式
 
-接着利用mx.sym.BilinearSample 来实现位置的精确插入 (2D sampling grid 和feature map作为输入)  实现通过光流把j帧的feature map投射到第i帧的feature map上
+接着利用mx.sym.BilinearSample 来实现位置的精确插入 (2D sampling grid 和feature map作为输入, 因为光流场的大小为原图的尺寸，而feature map为卷积后的结果 所以需要BilinearSample 实现光流场对feature map 的对应)  实现通过光流把j帧的feature map投射到第i帧的feature map上
+
+GridGenerator  以及 BilinearSample 实现wrap的详细解释：
+该函数主要输入一个形状为(N,C,Hin,Win)的input张量，输入一个形状为(N,Hout,Wout,2)的grid张量，输出一个形状为(N,C,Hout,Wout)的output张量。
+
+输入的grid是一个Hout × Wout大小的空间位置矩阵，其中每个元素都代表着一个二维空间坐标(x,y)，该坐标指明了在input上采样的坐标,而输出张量的每个位置output[n,:,h,w]的值，取决于这个输入input和采样坐标的值（通过双线性插值形成）
 
 
 B)
 Feature aggregation
-得到了前后K帧的feature map对当前帧feature map投影 Ej-->i(i-k <= j < i+k)后，由一个Embedding 层分别计算他们各自的Embedding feature Fj-->i，以及当前帧本身的Embedding Fi
-Embedding 层由三层卷积层构成
+对于每一帧j(i-k <= j < i+k) 计算第j帧的feature map 对第i帧 feature map的投影 
+具体为计算第j帧原图对第i帧原图的光流场,并以此为参考将j帧的feature map wrap至第i帧的feature map 上
+得到了前后K帧的feature map对当前帧feature map投影 Ej-->i(i-k <= j < i+k)后，由一个Embedding 网络分别计算他们各自的Embedding feature Fj-->i，以及当前帧本身的Embedding Fi   即Embedding 的详细步骤为 对于每一帧j(i-k <= j < i+k) 输入 Ej-->i  计算 Fj-->i  以及 输入Ei 计算 Fi
+Embedding 网络由三层卷积层构成
 
-接着分别计算前后K帧的feature map对当前帧feature map投影的权重
+接着对于每一帧j(i-k <= j < i+k) 分别计算前后K帧的feature map对当前帧feature map投影的权重 (利用输出的Embedding)
 计算公式为：Wj-->i = exp((Fj-->i dot Fi) / Abs(Fj-->i) * Abs(Fi))
 
 分别得出前后K帧feature map对于当前帧feature map投影的权重后，再分别由对应的前后K帧的feature map对当前帧feature map投影乘他们各自的权重，再进行总体相加融合
