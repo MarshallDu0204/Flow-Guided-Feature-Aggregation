@@ -55,10 +55,10 @@ Feature aggregation
 得到了前后K帧的feature map对当前帧feature map投影 Ej-->i(i-k <= j < i+k)后，由一个Embedding 网络分别计算他们各自的Embedding feature Fj-->i，以及当前帧本身的Embedding Fi   即Embedding 的详细步骤为 对于每一帧j(i-k <= j < i+k) 输入 Ej-->i  计算 Fj-->i  以及 输入Ei 计算 Fi
 Embedding 网络由三层卷积层构成
 
-接着对于每一帧j(i-k <= j < i+k) 分别计算前后K帧的feature map对当前帧feature map投影的权重 (利用输出的Embedding)
+接着对于每一帧j(i-k <= j < i+k) 计算第j帧的feature map对当前帧feature map投影的权重 (利用输出的Embedding)
 计算公式为：Wj-->i = exp((Fj-->i dot Fi) / Abs(Fj-->i) * Abs(Fi))
 
-分别得出前后K帧feature map对于当前帧feature map投影的权重后，再分别由对应的前后K帧的feature map对当前帧feature map投影乘他们各自的权重，再进行总体相加融合
+分别得出前后K帧feature map对于当前帧feature map投影的权重后，再分别由对应的前后K帧的feature map对当前帧feature map投影乘他们各自的权重，再结合当前帧进行总体相加融合
 
 
 
