@@ -61,6 +61,32 @@ Embedding 网络由三层卷积层构成
 分别得出前后K帧feature map对于当前帧feature map投影的权重后，再分别由对应的前后K帧的feature map对当前帧feature map投影乘他们各自的权重，再结合当前帧进行总体相加融合
 
 
+实际在网络中操作如下
+K的取值为前后10帧
+所以每一批次的数据为 当前帧*10  前10帧  后10帧 共计30个frame
+
+第一步对10*当前帧以及前10帧进行拼接，计算10前张光流场，对10*当前帧以及后10帧进行拼接，计算后10张光流场
+
+同时对这30个frame原图整体利用resnet提取30个feature map
+
+对30个feature map拆分成当前帧*10 ,前10帧, 后10帧
+
+对前10帧feature map结合前10张光流场进行wrap， 对后10帧feature map结合后10张光流场进行wrap
+
+将当前帧的feature map*10, wrap后的前10帧feature map, wrap后的后10帧feature map 拼接
+
+将拼接后的30张 feature map输入到embedding network 中进行embedding运算 得到30张embedding
+
+将30张embedding 拆分成当前帧*10 ,前10帧, 后10帧， 
+
+将当前帧*10与前10帧结合计算10前个weight, 将当前帧*10与后10帧结合计算后10个weight (weight 经过softmax处理)
+
+将前10个weight 与 line76行的 wrap后的前10帧feature map 相乘， 后10个weight与line76的wrap后的后10帧feature map相乘
+
+line84产生两组结果最后再进行相加，实际意义为20张wrap后的feature map与weight相乘之后再进行相加，从而实现加权求和,合并为一张feature map
+
+将结果生成的feature map进行 RPN ROI ROIalign cls_regr 等一系列后续操作
+
 
 现阶段由于只有Colab, 以及云端环境，暂时无法完成训练
 
