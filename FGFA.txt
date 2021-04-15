@@ -79,13 +79,13 @@ K的取值为前后10帧
 
 将30张embedding 拆分成当前帧*10 ,前10帧, 后10帧， 
 
-将当前帧*10与前10帧结合计算10前个weight, 将当前帧*10与后10帧结合计算后10个weight (weight 经过softmax处理)
+将当前帧*10的embedding与前10帧embedding结合计算10前个weight, 将当前帧*10embedding与后10帧embedding结合计算后10个weight (weight 经过softmax处理)
 
 将前10个weight 与 line76行的 wrap后的前10帧feature map 相乘， 后10个weight与line76的wrap后的后10帧feature map相乘
 
 line84产生两组结果最后再进行相加，实际意义为20张wrap后的feature map与weight相乘之后再进行相加，从而实现加权求和,合并为一张feature map
 
-将结果生成的feature map进行 RPN ROI ROIalign cls_regr 等一系列后续操作
+将结果生成的feature map进行 RPN ROI ROIalign final_cls+fianl_regr 等一系列后续操作
 
 
 现阶段由于只有Colab, 以及云端环境，暂时无法完成训练
